@@ -204,8 +204,8 @@ To run this app on another user's PC, they need to follow these steps:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-   cd real_life_app
+   git clone https://github.com/krithik-create/cs_theory_to_irl.git
+   cd cs_theory_to_irl
    ```
 
 2. **Backend Setup:**
@@ -296,3 +296,5 @@ This project is private and not intended for public distribution.
 ## Getting Started with Flutter Development
 
 For help getting started with Flutter development, view the [online documentation](https://docs.flutter.dev/), which offers tutorials, samples, guidance on mobile development, and a full API reference.
+#   c s _ t h e o r y _ t o _ i r l  
+ 

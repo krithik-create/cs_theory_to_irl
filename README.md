@@ -81,12 +81,20 @@ Before running this application, ensure you have the following installed:
 
 ## Running the Application
 
-### Option 1: Using the Provided Batch Script
+### Option 1: Using the Provided Scripts (Recommended)
 
+**Windows Users:**
 1. **Start backend server:**
-   Double-click `start_backend.cmd` (Windows) or run:
+   Double-click `start_backend.cmd` or run:
    ```bash
-   ./start_backend.cmd  # On Unix systems, might need different script
+   start_backend.cmd
+   ```
+
+**macOS/Linux Users:**
+1. **Start backend server:**
+   ```bash
+   chmod +x start_backend.sh  # Make executable (one-time setup)
+   ./start_backend.sh
    ```
 
 2. **Start Flutter app:**
@@ -256,6 +264,8 @@ To run this app on another user's PC, they need to follow these steps:
 - **API Keys**: Each collaborator needs their own OpenRouter API key to use the AI features
 - **Data Storage**: Chat history and API keys are stored locally on each user's machine
 - **Network**: The backend runs on `localhost:5001` - ensure no firewall blocks this port
+- **Main Backend File**: Always use `chat_api.py` as the main server (not `app.py`)
+- **Virtual Environment**: The startup scripts automatically detect common venv names (venv, env, .venv, virtualenv)
 - **Platform Requirements**:
   - For Android: Android SDK and emulator/device
   - For iOS: macOS with Xcode (Apple devices only)
@@ -268,6 +278,10 @@ To run this app on another user's PC, they need to follow these steps:
 - Check that chat history saves properly
 
 ## Contributing
+
+For detailed collaboration instructions, see **[COLLABORATION.md](COLLABORATION.md)**.
+
+### Quick Contributing Steps
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature-name`
@@ -296,5 +310,5 @@ This project is private and not intended for public distribution.
 ## Getting Started with Flutter Development
 
 For help getting started with Flutter development, view the [online documentation](https://docs.flutter.dev/), which offers tutorials, samples, guidance on mobile development, and a full API reference.
-#   c s _ t h e o r y _ t o _ i r l  
+#   c s _ t h e o r y _ t o _ i r l 
  

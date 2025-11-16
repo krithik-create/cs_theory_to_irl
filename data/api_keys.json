@@ -1,0 +1,25 @@
+{
+  "127.0.0.1": {
+    "OpenRouter_key2.0": {
+      "key_name": "key2.0",
+      "provider": "OpenRouter",
+      "api_key": "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",
+      "credit_limit": null,
+      "updated_at": "2025-11-16T20:29:31.930512"
+    },
+    "OpenRouter_default": {
+      "key_name": "default",
+      "provider": "OpenRouter",
+      "api_key": "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",
+      "credit_limit": null,
+      "updated_at": "2025-11-16T20:49:03.481355"
+    },
+    "OpenRouter_yes": {
+      "key_name": "yes",
+      "provider": "OpenRouter",
+      "api_key": "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",
+      "credit_limit": null,
+      "updated_at": "2025-11-16T20:31:15.264550"
+    }
+  }
+}

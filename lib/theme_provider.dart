@@ -89,7 +89,7 @@ class ThemeProvider extends ChangeNotifier {
     ),
     cardTheme: CardThemeData(
       elevation: 2,
-      color: Colors.white,
+      color: Colors.white.withValues(alpha: 0.95),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -102,6 +102,14 @@ class ThemeProvider extends ChangeNotifier {
         borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: Colors.blueGrey, width: 2),
       ),
+    ),
+    iconTheme: const IconThemeData(
+      color: Colors.blueGrey,
+      size: 24,
+    ),
+    textTheme: Typography.material2021().black.apply(
+      bodyColor: Colors.black87,
+      displayColor: Colors.black87,
     ),
   );
 
@@ -135,7 +143,7 @@ class ThemeProvider extends ChangeNotifier {
     ),
     cardTheme: CardThemeData(
       elevation: 2,
-      color: const Color(0xFF1E1E1E),
+      color: const Color(0xFF1E1E1E).withValues(alpha: 0.95),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -148,6 +156,14 @@ class ThemeProvider extends ChangeNotifier {
         borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: Colors.blueGrey, width: 2),
       ),
+    ),
+    iconTheme: const IconThemeData(
+      color: Colors.blueGrey,
+      size: 24,
+    ),
+    textTheme: Typography.material2021().white.apply(
+      bodyColor: Colors.white70,
+      displayColor: Colors.white70,
     ),
   );
 
@@ -170,13 +186,13 @@ class ThemeProvider extends ChangeNotifier {
         primary: Color(0xFF2C3E50), // Dark blue-grey
         secondary: Color(0xFF34495E), // Lighter blue-grey
         surface: Color(0xFF1A1A1A), // Very dark grey
-        background: Color(0xFF1A1A2E), // Blue-black
+        background: Color(0xFF1A1A2E), // Navy blue background
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: Colors.white70,
         onBackground: Colors.white70,
       ),
-      scaffoldBackgroundColor: const Color(0xFF1A1A2E), // Blue-black background
+      scaffoldBackgroundColor: const Color(0xFF1A1A2E), // Navy blue background
       appBarTheme: const AppBarTheme(
         backgroundColor: Color(0xFF1A1A1A),
         foregroundColor: Colors.white,
@@ -194,7 +210,7 @@ class ThemeProvider extends ChangeNotifier {
       ),
       cardTheme: CardThemeData(
         elevation: 2,
-        color: const Color(0xFF1A1A1A),
+        color: const Color(0xFF1A1A1A).withValues(alpha: 0.95),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -207,6 +223,14 @@ class ThemeProvider extends ChangeNotifier {
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: Color(0xFF2C3E50), width: 2),
         ),
+      ),
+      iconTheme: const IconThemeData(
+        color: Color(0xFF2C3E50),
+        size: 24,
+      ),
+      textTheme: Typography.material2021().white.apply(
+        bodyColor: Colors.white70,
+        displayColor: Colors.white70,
       ),
     );
   }

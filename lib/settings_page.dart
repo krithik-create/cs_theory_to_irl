@@ -55,8 +55,15 @@ class _SettingsPageState extends State<SettingsPage> {
     _testResult = '';
     _isTestingConnection = false;
     _useCustomModel = false;
-    _loadSettings();
     _loadSavedApiKeys();
+
+    // Add listener to autosave API key when changed
+    _apiKeyController.addListener(_onApiKeyChanged);
+
+    // Defer the loading that requires context until after the first build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadSettings();
+    });
   }
 
   Future<void> _loadSettings() async {
@@ -297,7 +304,7 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: Colors.blueGrey,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
       ),
       body: SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
@@ -312,7 +319,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   borderRadius: BorderRadius.circular(15),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 10,
                       offset: const Offset(0, 5),
                     ),
@@ -320,10 +327,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 child: Column(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.settings,
                       size: 40,
-                      color: Colors.blueGrey,
+                      color: Theme.of(context).primaryColor,
                     ),
                     const SizedBox(height: 10),
                     Text(
@@ -570,9 +577,20 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 20),
 
               // API Key Selection Dropdown
-              const Text(
-                'Select API Key:',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Row(
+                children: [
+                  const Text(
+                    'Select API Key:',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  if (_selectedApiKeyUniqueKey != null)
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => _deleteSelectedApiKey(),
+                      tooltip: 'Delete selected API key',
+                    ),
+                ],
               ),
               const SizedBox(height: 10),
               Container(
@@ -597,32 +615,24 @@ class _SettingsPageState extends State<SettingsPage> {
                           border: InputBorder.none,
                         ),
                         hint: const Text('Select an API key'),
-                        items: [
-                          // Add a "None" option to handle invalid selections
-                          const DropdownMenuItem<String>(
-                            value: null,
-                            child: Text('Select an API key'),
-                          ),
-                          // Filter and add valid API keys
-                          ..._savedApiKeys.where((key) {
-                            // Filter out invalid or incomplete key entries
-                            final keyName = key['key_name'] as String?;
-                            final provider = key['provider'] as String?;
-                            final uniqueKey = key['unique_key'] as String?;
-                            return keyName != null && keyName.isNotEmpty &&
-                                   provider != null && provider.isNotEmpty &&
-                                   uniqueKey != null && uniqueKey.isNotEmpty;
-                          }).map((key) {
-                            final keyName = key['key_name'] as String?;
-                            final provider = key['provider'] as String?;
-                            final uniqueKey = key['unique_key'] as String?;
+                        items: _savedApiKeys.where((key) {
+                          // Filter out invalid or incomplete key entries
+                          final keyName = key['key_name'] as String?;
+                          final provider = key['provider'] as String?;
+                          final uniqueKey = key['unique_key'] as String?;
+                          return keyName != null && keyName.isNotEmpty &&
+                                 provider != null && provider.isNotEmpty &&
+                                 uniqueKey != null && uniqueKey.isNotEmpty;
+                        }).map((key) {
+                          final keyName = key['key_name'] as String?;
+                          final provider = key['provider'] as String?;
+                          final uniqueKey = key['unique_key'] as String?;
 
-                            return DropdownMenuItem<String>(
-                              value: uniqueKey,
-                              child: Text('$keyName ($provider)'),
-                            );
-                          }).toList(),
-                        ],
+                          return DropdownMenuItem<String>(
+                            value: uniqueKey,
+                            child: Text('$keyName ($provider)'),
+                          );
+                        }).toList(),
                         onChanged: (String? newValue) async {
                           setState(() {
                             _selectedApiKeyUniqueKey = newValue;
@@ -849,8 +859,77 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  Future<void> _deleteSelectedApiKey() async {
+    if (_selectedApiKeyUniqueKey == null) return;
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete API Key'),
+          content: const Text('Are you sure you want to delete this API key? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      const String backendUrl = 'http://localhost:5001';
+      final response = await http.delete(Uri.parse('$backendUrl/api/keys/${Uri.encodeComponent(_selectedApiKeyUniqueKey!)}'));
+
+      if (response.statusCode == 200) {
+        // Clear the selection and reload keys
+        setState(() {
+          _selectedApiKeyUniqueKey = null;
+          _selectedProvider = kDefaultProvider;
+          _apiKeyController.text = '';
+        });
+
+        // Clear from preferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('selected_api_key_unique_key');
+
+        // Reload the keys list
+        await _loadSavedApiKeys();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('API key deleted successfully')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to delete API key')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting API key: $e')),
+      );
+    }
+  }
+
+  void _onApiKeyChanged() {
+    if (_apiKeyController.text.isNotEmpty && _selectedApiKeyUniqueKey != null) {
+      // Auto-save the API key to backend when changed
+      _saveApiKeyToBackend(_apiKeyController.text, _selectedProvider);
+    }
+  }
+
   @override
   void dispose() {
+    _apiKeyController.removeListener(_onApiKeyChanged);
     _apiKeyController.dispose();
     _customModelController.dispose();
     super.dispose();
@@ -1039,6 +1118,17 @@ class _SettingsPageState extends State<SettingsPage> {
                   if (response.statusCode == 200) {
                     Navigator.of(context).pop();
                     await _loadSavedApiKeys();
+                    // Auto-select the newly added key
+                    setState(() {
+                      _selectedApiKeyUniqueKey = '${selectedProvider}_${keyName}';
+                      _selectedProvider = selectedProvider;
+                      _apiKeyController.text = apiKey;
+                    });
+                    // Save the selection
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('selected_api_key_unique_key', _selectedApiKeyUniqueKey!);
+                    await prefs.setString('ai_provider', selectedProvider);
+                    await prefs.setString('api_key', apiKey);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('API key saved successfully!')),
                     );

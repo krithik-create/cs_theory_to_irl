@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
+import 'main.dart';
 
 class ChatHistoryPage extends StatefulWidget {
   const ChatHistoryPage({super.key});
@@ -71,13 +72,13 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
   }
 
   String _getConversationPreview(Map<String, dynamic> conversation) {
-    final messages = List<Map<String, String>>.from(conversation['messages']);
+    final messages = List<Map<String, dynamic>>.from(conversation['messages'] ?? []);
     if (messages.isEmpty) return 'No messages';
 
     // Find first user message for preview
     for (var message in messages) {
       if (message['type'] == 'user') {
-        String preview = message['message'] ?? '';
+        String preview = message['message']?.toString() ?? '';
         return preview.length > 60 ? '${preview.substring(0, 60)}...' : preview;
       }
     }
@@ -90,11 +91,12 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Chat History'),
-        backgroundColor: Colors.blueGrey,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
         actions: [
           if (_conversations.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.delete_sweep),
+              icon: Icon(Icons.delete_sweep, color: Theme.of(context).iconTheme.color),
               onPressed: () {
                 showDialog(
                   context: context,
@@ -124,18 +126,18 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
             ),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFE3F2FD), // Light blue
-              Color(0xFFF3E5F5), // Light purple
-              Color(0xFFE8F5E8), // Light green
-            ],
-          ),
+    body: Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Theme.of(context).colorScheme.surface.withValues(alpha: 0.95),
+            Theme.of(context).colorScheme.surface,
+            Theme.of(context).colorScheme.background,
+          ],
         ),
+      ),
         child: _conversations.isEmpty
             ? _buildEmptyState()
             : _buildHistoryList(),
@@ -320,26 +322,13 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => ConversationViewPage(
-          conversation: conversation,
-          onContinue: () {
-            // Navigate back to main chat with the same subject/grade
-            Navigator.of(context).popUntil((route) => route.isFirst);
-            // This would need to be handled by the main app to navigate to chat
-          },
+        builder: (context) => AIChatPage(
+          subject: subject,
+          grade: grade,
+          existingConversation: conversation,
         ),
       ),
     );
-  }
-
-  void _continueConversation(Map<String, dynamic> conversation) {
-    final subject = conversation['subject'];
-    final grade = conversation['grade'];
-
-    // Navigate back to main page and then to chat
-    Navigator.of(context).popUntil((route) => route.isFirst);
-    // The main app would need to handle navigation to the chat page
-    // For now, we'll just go back to the main page
   }
 
   void _viewConversation(Map<String, dynamic> conversation) {
@@ -502,7 +491,7 @@ class _ConversationViewPageState extends State<ConversationViewPage> {
   Widget build(BuildContext context) {
     final subject = widget.conversation['subject'] ?? 'Unknown Subject';
     final grade = widget.conversation['grade'] ?? 'Unknown Grade';
-    final messages = List<Map<String, String>>.from(widget.conversation['messages'] ?? []);
+    final messages = List<Map<String, dynamic>>.from(widget.conversation['messages'] ?? []);
     final timestamp = DateTime.parse(widget.conversation['timestamp']);
 
     return Scaffold(

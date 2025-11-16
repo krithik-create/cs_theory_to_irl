@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'settings_page.dart';
 import 'chat_history_page.dart';
@@ -47,8 +48,14 @@ class SubjectSelectionPage extends StatefulWidget {
 class AIChatPage extends StatefulWidget {
   final String subject;
   final String grade;
+  final Map<String, dynamic>? existingConversation;
 
-  const AIChatPage({super.key, required this.subject, required this.grade});
+  const AIChatPage({
+    super.key,
+    required this.subject,
+    required this.grade,
+    this.existingConversation
+  });
 
   @override
   State<AIChatPage> createState() => _AIChatPageState();
@@ -59,8 +66,29 @@ class _SubjectSelectionPageState extends State<SubjectSelectionPage> {
   String? selectedGrade;
   List<String> applications = [];
   bool isLoadingApplications = false;
+  bool _showSettingsPrompt = true;
 
   List<String> grades = ['5', '6', '7', '8', '9', '10', '11', '12', 'College'];
+  Timer? _promptTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Start timer to hide settings prompt after 10 seconds
+    _promptTimer = Timer(const Duration(seconds: 10), () {
+      if (mounted) {
+        setState(() {
+          _showSettingsPrompt = false;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _promptTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +110,9 @@ class _SubjectSelectionPageState extends State<SubjectSelectionPage> {
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
+              setState(() {
+                _showSettingsPrompt = false;
+              });
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const SettingsPage()),
@@ -95,46 +126,46 @@ class _SubjectSelectionPageState extends State<SubjectSelectionPage> {
           color: Theme.of(context).scaffoldBackgroundColor,
         ),
         child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            backgroundBlendMode: BlendMode.overlay,
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).colorScheme.primary.withOpacity(0.01),
-                Theme.of(context).colorScheme.secondary.withOpacity(0.02),
-                Colors.transparent,
-              ],
-            ),
-          ),
-          child: DecoratedBox(
             decoration: BoxDecoration(
-              backgroundBlendMode: BlendMode.softLight,
+              color: Colors.transparent,
+              backgroundBlendMode: BlendMode.overlay,
               gradient: LinearGradient(
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
                 colors: [
-                  Colors.transparent,
-                  Theme.of(context).cardColor.withOpacity(0.02),
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.01),
+                  Theme.of(context).colorScheme.secondary.withValues(alpha: 0.02),
                   Colors.transparent,
                 ],
-                stops: const [0.0, 0.5, 1.0],
               ),
             ),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                backgroundBlendMode: BlendMode.multiply,
+                backgroundBlendMode: BlendMode.softLight,
                 gradient: LinearGradient(
-                  begin: Alignment.bottomLeft,
-                  end: Alignment.topRight,
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
                   colors: [
                     Colors.transparent,
-                    Theme.of(context).dividerColor.withOpacity(0.003),
+                    Theme.of(context).cardColor.withValues(alpha: 0.02),
                     Colors.transparent,
                   ],
+                  stops: const [0.0, 0.5, 1.0],
                 ),
               ),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  backgroundBlendMode: BlendMode.multiply,
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomLeft,
+                    end: Alignment.topRight,
+                    colors: [
+                      Colors.transparent,
+                      Theme.of(context).dividerColor.withValues(alpha: 0.003),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -185,6 +216,38 @@ class _SubjectSelectionPageState extends State<SubjectSelectionPage> {
                   ],
                 ),
               ),
+              if (_showSettingsPrompt) ...[
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.orange.shade700,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          '📝 Please enter your Settings first by tapping the gear icon above to configure your AI provider and API key.',
+                          style: TextStyle(
+                            color: Colors.orange.shade800,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 30),
               const Text(
                 'Select a subject:',
@@ -297,6 +360,9 @@ class _SubjectSelectionPageState extends State<SubjectSelectionPage> {
                 ElevatedButton(
                   onPressed: () {
                     if (selectedSubject != null && selectedGrade != null) {
+                      setState(() {
+                        _showSettingsPrompt = false;
+                      });
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -371,7 +437,7 @@ class _SubjectSelectionPageState extends State<SubjectSelectionPage> {
     try {
       final response = await http.get(
         Uri.parse('http://localhost:5000/api/applications/${Uri.encodeComponent(selectedSubject!)}'),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -380,12 +446,13 @@ class _SubjectSelectionPageState extends State<SubjectSelectionPage> {
         });
       } else {
         setState(() {
-          applications = ['Error loading applications. Please try again.'];
+          applications = ['Error: Unable to fetch applications. Please try again.'];
         });
       }
     } catch (e) {
+      // Don't show connection error if backend is not running - let user proceed without applications
       setState(() {
-        applications = ['Error connecting to server. Please check your connection.'];
+        applications = [];
       });
     } finally {
       setState(() {
@@ -404,7 +471,11 @@ class _AIChatPageState extends State<AIChatPage> {
   @override
   void initState() {
     super.initState();
-    _addInitialMessage();
+    if (widget.existingConversation != null) {
+      _loadExistingConversation();
+    } else {
+      _addInitialMessage();
+    }
     _loadUsageData();
   }
 
@@ -428,11 +499,15 @@ class _AIChatPageState extends State<AIChatPage> {
     await prefs.setDouble('usage_cost', _currentUsage['cost']);
   }
 
-  Future<void> _resetUsageData() async {
-    setState(() {
-      _currentUsage = {'input_tokens': 0, 'output_tokens': 0, 'total_tokens': 0, 'cost': 0.0};
-    });
-    await _saveUsageData();
+
+
+  void _loadExistingConversation() {
+    if (widget.existingConversation != null) {
+      final messages = List<Map<String, dynamic>>.from(widget.existingConversation!['messages'] ?? []);
+      setState(() {
+        _messages.addAll(messages.map((msg) => Map<String, String>.from(msg)).toList());
+      });
+    }
   }
 
   void _addInitialMessage() {
@@ -513,8 +588,8 @@ class _AIChatPageState extends State<AIChatPage> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Theme.of(context).colorScheme.primary.withOpacity(0.008),
-                Theme.of(context).colorScheme.secondary.withOpacity(0.01),
+                Theme.of(context).colorScheme.primary.withValues(alpha: 0.008),
+                Theme.of(context).colorScheme.secondary.withValues(alpha: 0.01),
                 Colors.transparent,
               ],
             ),
@@ -527,8 +602,8 @@ class _AIChatPageState extends State<AIChatPage> {
                 end: Alignment.bottomCenter,
                 colors: [
                   Colors.transparent,
-                  Theme.of(context).dividerColor.withOpacity(0.002),
-                  Theme.of(context).cardColor.withOpacity(0.01),
+                  Theme.of(context).dividerColor.withValues(alpha: 0.002),
+                  Theme.of(context).cardColor.withValues(alpha: 0.01),
                   Colors.transparent,
                 ],
                 stops: const [0.0, 0.3, 0.8, 1.0],
@@ -604,7 +679,7 @@ class _AIChatPageState extends State<AIChatPage> {
                               '${_currentUsage['total_tokens']} tokens used',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.8),
+                                color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.8),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -612,7 +687,7 @@ class _AIChatPageState extends State<AIChatPage> {
                               Text(
                                 ' • ',
                                 style: TextStyle(
-                                  color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.8),
+                              color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.8),
                                 ),
                               ),
                               Text(
@@ -864,7 +939,7 @@ class _AIChatPageState extends State<AIChatPage> {
                                 source['description']!,
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8),
+                                  color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                                 ),
                               ),
                             ],
@@ -1060,19 +1135,5 @@ class _AIChatPageState extends State<AIChatPage> {
     };
   }
 
-  String _generateAIResponse(String userMessage) {
-    // For demonstration purposes, we'll create simple responses based on the subject
-    // In a real implementation, this would connect to an AI service like OpenAI's API
-    final subject = widget.subject.toLowerCase();
-    final grade = widget.grade;
 
-    // This is just a basic example - in reality, you'd use a proper AI API
-    if (userMessage.toLowerCase().contains('algebra')) {
-      return 'Algebra is used everywhere! For example, in computer graphics, algebraic equations help create 3D animations and special effects in movies and video games. In finances, it helps with compound interest calculations and investment planning.';
-    } else if (userMessage.toLowerCase().contains('force')) {
-      return 'Forces are fundamental! Engineers use force calculations to design safe bridges and buildings. In medicine, understanding forces helps with joint replacement surgeries and prosthetic design.';
-    } else {
-      return 'That\'s a great question about ${subject}! In the real world, ${subject.toLowerCase()} concepts like these are used by professionals in fields like engineering, medicine, business, and technology. What specific aspect would you like to explore more?';
-    }
-  }
 }

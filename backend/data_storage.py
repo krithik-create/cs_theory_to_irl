@@ -109,13 +109,29 @@ class DataStorage:
 
             formatted_keys = []
             for unique_key, key_data in user_keys.items():
-                formatted_keys.append({
-                    'unique_key': unique_key,
-                    'key_name': key_data.get('key_name', 'Unknown'),
-                    'provider': key_data.get('provider', 'Unknown'),
-                    'credit_limit': key_data.get('credit_limit'),
-                    'updated_at': key_data.get('updated_at'),
-                })
+                # Handle legacy format where unique_key is just provider
+                is_legacy = 'key_name' not in key_data and 'provider' not in key_data and 'api_key' in key_data
+
+                if is_legacy:
+                    # This is a legacy key: unique_key=provider, key_data={api_key: ..., updated_at: ...}
+                    formatted_keys.append({
+                        'unique_key': unique_key,
+                        'key_name': 'Legacy Key',
+                        'provider': unique_key,  # unique_key is actually the provider name
+                        'credit_limit': key_data.get('credit_limit'),
+                        'updated_at': key_data.get('updated_at'),
+                        'api_key': key_data.get('api_key'),  # Include API key
+                    })
+                else:
+                    # This is a modern format key
+                    formatted_keys.append({
+                        'unique_key': unique_key,
+                        'key_name': key_data.get('key_name', 'Unknown'),
+                        'provider': key_data.get('provider', 'Unknown'),
+                        'credit_limit': key_data.get('credit_limit'),
+                        'updated_at': key_data.get('updated_at'),
+                        'api_key': key_data.get('api_key'),  # Include API key
+                    })
 
             # Sort by provider and then by key name
             formatted_keys.sort(key=lambda x: (x['provider'], x['key_name']))
